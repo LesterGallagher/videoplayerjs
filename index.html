@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Eva Test</title>
+</head>
+
+<body>
+    <canvas id="c"></canvas>
+    <script>
+        let mouseDown = false;
+        document.body.onmousedown = () => mouseDown = true;
+        document.body.onmouseup = () => mouseDown = false;
+
+        window.onload = () => {
+            const canvas = document.getElementById('c');
+            const ctx = canvas.getContext('2d');
+            const lag = 2000;
+            let last = null;
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            ctx.lineWidth = 3;
+
+            var draw = (clientX, clientY, setLast) => {
+                const col = '#' + Math.floor(Math.random() * 13005000).toString(16);
+                if (last) {
+                    ctx.beginPath();
+                    ctx.moveTo(last.clientX, last.clientY);
+                    ctx.lineTo(clientX, clientY);
+                    ctx.strokeStyle = col;
+                    ctx.stroke();
+                }
+                last = { clientX, clientY };
+            };
+
+            canvas.onmousemove = (e) => {
+                if (!mouseDown) setTimeout(() => last = null, lag);
+                else setTimeout(draw.bind(null, e.clientX, e.clientY), lag);
+            };
+        }
+
+    </script>
+</body>
+
+</html>

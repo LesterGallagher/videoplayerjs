@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Video</title>
+
+    <link rel="stylesheet" href="video.css">
+</head>
+<body>
+    <div class="video-wrapper">
+        <video width="600" class="video">
+            <source src="https://test.b-cdn.net/bunny_720p.m4v" type="video/mp4">
+            Your browser does not support HTML5 Video.
+        </video>
+        <button class="video-play"></button>
+        <div class="video-audio">
+            <button class="video-audio-btn"></button>
+            <input orient="vertical" type="range" class="video-audio-level">
+        </div>
+        <div class="video-numeral-progress">2:24/7.21</div>
+        <input type="range" class="video-visual-progress">
+        <button class="video-fullscreen"></button>
+    </div>
+
+    <script src="video.js"></script>
+    <script>
+        var video = videoPlayerJs(document.getElementsByClassName('video-wrapper')[0]);
+        var vidEl = document.getElementsByTagName('video')[0];
+        vidEl.addEventListener('durationchange', function() {
+            console.log(vidEl.duration);
+            video.durationupdate(+vidEl.duration);
+        });
+    </script>
+</body>
+</html>
