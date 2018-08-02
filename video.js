@@ -15,7 +15,7 @@ function videoPlayerJs(wrapper) {
     var videoPlay = ge('video-play');
     var videoAudio = ge('video-audio');
     var videoAudioBtn = ge('video-audio-btn');
-    var videoAudioLevel = ge('video-audio-level');
+    var videoAudioLevel = ge('video-volume');
     var videoNumeralProgress = ge('video-numeral-progress');
     var videoVisualProgress = ge('video-visual-progress');
     var videoFullscreen = ge('video-fullscreen');
@@ -24,9 +24,11 @@ function videoPlayerJs(wrapper) {
     var isPlaying = false;
     var vidDuration = 0;
     var vidDurationFmt = '';
-    var audioLevel = 1;
+    var vidVolume = 1;
     var isUserSliding = false;
     var muted = false;
+    var fullscreen = false;
+    var vidLenLong = false;
 
     var r = eventEmitter();
     var emitter = r.emitter;
@@ -45,17 +47,22 @@ function videoPlayerJs(wrapper) {
         }
     });
 
-    videoAudioLevel.addEventListener('input', function() {
+    videoAudioLevel.addEventListener('input', function () {
         var val = (videoAudioLevel.value - (videoAudioLevel.min || 0)) / (videoAudioLevel.max || 100);
         val = Math.min(1, Math.max(0, val));
-        emitter['audioLevel'](val);
+        emitter['volume'](val);
     });
 
-    videoVisualProgress.addEventListener('input', function() {
-        var val = (videoAudioLevel.value - (videoAudioLevel.min || 0)) / (videoAudioLevel.max || 100);
+    videoVisualProgress.addEventListener('input', function () {
+        var val = (videoVisualProgress.value - (videoVisualProgress.min || 0)) / (videoVisualProgress.max || 100);
         val = Math.min(1, Math.max(0, val));
         var time = val * vidDuration;
         emitter['timeupdate'](time);
+    });
+
+    videoFullscreen.addEventListener('click', function () {
+        if (fullscreen) emitter['windowedscreen']();
+        else emitter['fullscreen']();
     });
 
     emitter['play'] = function () {
@@ -72,33 +79,35 @@ function videoPlayerJs(wrapper) {
         emit('stop');
     };
 
-    emitter['durationupdate'] = function(seconds) {
+    emitter['durationchange'] = function (seconds) {
         vidDuration = seconds;
         vidDurationFmt = fmt(seconds);
         videoNumeralProgress.innerText = fmt(vidTime) + '/' + vidDurationFmt;
-        emit('durationupdate');
-    }   
-
-    function setAudioLevelIcon() {
-        videoAudio.classList.remove('audio-level-high');
-        videoAudio.classList.remove('audio-level-muted');
-        videoAudio.classList.remove('audio-level-low');
-        videoAudio.classList.remove('audio-level-med');
-        var level = muted ? 0 : audioLevel;
-        var levelStr = level > 0.66 ? 'high' : level > 0.33 ? 'med' : level > 0 ? 'low' : 'muted';
-        videoAudio.classList.add('audio-level-' + levelStr);
+        if ((vidDuration > 3600 || vidDuration > 3600) && !vidLenLong) videoVisualProgress.classList.add('video-length-long');
+        else if ((vidDuration <= 3600 && vidDuration <= 3600) && vidLenLong) videoVisualProgress.classList.remove('video-length-long'); 
+        emit('durationchange');
     }
 
-    emitter['audioLevel'] = function (level) {
+    function setAudioLevelIcon() {
+        videoAudio.classList.remove('volume-high');
+        videoAudio.classList.remove('volume-muted');
+        videoAudio.classList.remove('volume-low');
+        videoAudio.classList.remove('volume-med');
+        var level = muted ? 0 : vidVolume;
+        var levelStr = level > 0.66 ? 'high' : level > 0.33 ? 'med' : level > 0 ? 'low' : 'muted';
+        videoAudio.classList.add('volume-' + levelStr);
+    }
+
+    emitter['volume'] = function (level) {
         if (muted && level !== 0) {
-            audioLevel = level;
+            vidVolume = level;
             return emitter['unmute']();
         }
         else if (level === 0) return emitter['mute']();
         else {
-            audioLevel = level;
+            vidVolume = level;
             setAudioLevelIcon();
-            emit('audio-level', level);
+            emit('volume', level);
         }
     };
 
@@ -107,7 +116,7 @@ function videoPlayerJs(wrapper) {
         muted = true;
         setAudioLevelIcon();
         emit('mute');
-        emit('audio-level', 0);
+        emit('volume', 0);
     }
 
     emitter['unmute'] = function () {
@@ -115,7 +124,7 @@ function videoPlayerJs(wrapper) {
         muted = false;
         setAudioLevelIcon();
         emit('unmute');
-        emit('audio-level', audioLevel);
+        emit('volume', vidVolume);
     }
 
     emitter['timeupdate'] = function (seconds) {
@@ -123,15 +132,98 @@ function videoPlayerJs(wrapper) {
         videoNumeralProgress.innerText = fmt(seconds) + '/' + vidDurationFmt;
     }
 
+    emitter['fullscreen'] = function () {
+        if (fullscreen) return;
+        video.classList.add('fullscreen');
+        fullscreen = true;
+        registerExitHandlers();
+        if (wrapper.requestFullscreen) {
+            wrapper.requestFullscreen();
+        } else if (wrapper.msRequestFullscreen) {
+            wrapper.msRequestFullscreen();
+        } else if (wrapper.mozRequestFullScreen) {
+            wrapper.mozRequestFullScreen();
+        } else if (wrapper.webkitRequestFullscreen) {
+            wrapper.webkitRequestFullscreen();
+        }
+        emit('fullscreen');
+    }
+
+    emitter['windowedscreen'] = function () {
+        if (!fullscreen) return;
+        unRegisterExitHandlers();
+        fullscreen = false;
+        if (video.classList.contains('fullscreen')) {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        }
+        video.classList.remove('fullscreen');
+        emit('windowedscreen');
+    }
+
+    emitter['wireupevents'] = function() {
+        emitter.addEventListener('play', function() {
+            video.play();
+        });
+
+        emitter.addEventListener('stop', function() {
+            video.pause();
+        });
+
+        emitter.addEventListener('volume', function(level) {
+            video.volume = level;
+        })
+
+        video.addEventListener('durationchange', function() {
+            emitter.durationchange(video.duration);
+        });
+    }
+
     return emitter;
 
-    function fmt(seconds) {
-        var hours = Math.floor(seconds / 3600) || '';
-        if (hours) hours = hours += ':';
-        var min = Math.floor((seconds / 60) % 60);
-        var sec = Math.floor(seconds % 60);
+    function registerExitHandlers() {
+        document.addEventListener('webkitfullscreenchange', exitHandler, false);
+        document.addEventListener('mozfullscreenchange', exitHandler, false);
+        document.addEventListener('fullscreenchange', exitHandler, false);
+        document.addEventListener('MSFullscreenChange', exitHandler, false);
+    }
 
-        return hours + min + ':' + sec;
+    function unRegisterExitHandlers() {
+        document.removeEventListener('webkitfullscreenchange', exitHandler, false);
+        document.removeEventListener('mozfullscreenchange', exitHandler, false);
+        document.removeEventListener('fullscreenchange', exitHandler, false);
+        document.removeEventListener('MSFullscreenChange', exitHandler, false);
+    }
+
+    function exitHandler() {
+        if (document.webkitIsFullScreen === false || document.mozFullScreen === false || document.msFullscreenElement === null) {
+            if (fullscreen) {
+                video.classList.remove('fullscreen');
+                emitter['windowedscreen']();
+            }
+        }
+    }
+
+    function fmt(seconds) {
+        function pad(n) {
+            return (n < 10 ? "0" + n : n);
+        }
+
+        var h = Math.floor(seconds / 3600);
+        var m = Math.floor(seconds / 60) - (h * 60);
+        var s = Math.floor(seconds - h * 3600 - m * 60);
+
+        var str = '';
+        if (h) str += pad(h).slice(0, 2) + ':';
+        str += pad(m) + ':' + pad(s);
+        return str;
     }
 
     function eventEmitter() {
@@ -144,7 +236,8 @@ function videoPlayerJs(wrapper) {
             }
 
             if (handlers[name]) {
-                for (var handler, i = handlers[name].length - 1; i >= 0; i-- , handler = handlers[name][i]) {
+                for (var handler, i = handlers[name].length - 1; i >= 0; i-- ) {
+                    handler = handlers[name][i];
                     handler.apply(undefined, data);
                     if (isOnce[name][i]) {
                         handlers[name].splice(i, 1);
@@ -154,11 +247,11 @@ function videoPlayerJs(wrapper) {
             }
         };
 
-        var push = function push(isOnce, prepend, name, handler) {
+        var push = function push(doOnce, prepend, name, handler) {
             handlers[name] = handlers[name] || [];
             handlers[name][prepend ? 'unshift' : 'push'](handler);
             isOnce[name] = isOnce[name] || [];
-            isOnce[name][prepend ? 'unshift' : 'push'](isOnce);
+            isOnce[name][prepend ? 'unshift' : 'push'](doOnce);
         };
 
         var addEventListener = push.bind(null, false, false);
@@ -168,8 +261,10 @@ function videoPlayerJs(wrapper) {
 
         var removeListener = function removeListener(name, handler) {
             if (handlers[name]) {
-                while (handlers[name].indexOf(handler) !== -1) {
-                    handlers[name].splice(handlers[name].indexOf(handler), 1);
+                var i;
+                while ((i = handlers[name].indexOf(handler)) !== -1) {
+                    handlers[name].splice(i, 1);
+                    isOnce[name].splice(i, 1);
                 }
             }
         };

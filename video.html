@@ -11,13 +11,13 @@
 <body>
     <div class="video-wrapper">
         <video width="600" class="video">
-            <source src="https://test.b-cdn.net/bunny_720p.m4v" type="video/mp4">
+            <source src="https://r3---sn-ui0pn-5hne.googlevideo.com/videoplayback?clen=291015945&requiressl=yes&mime=video%2Fmp4&ratebypass=yes&ipbits=0&expire=1533255541&fvip=5&pl=15&gir=yes&key=cms1&ip=23.80.156.8&sparams=clen,dur,ei,expire,gir,id,ip,ipbits,ipbypass,itag,lmt,mime,mip,mm,mn,ms,mv,pl,ratebypass,requiressl,source&itag=18&signature=6A3952A968388899FA9034F0BCBDD40BC38493DD.279E4661AFDD86A412588CBD102C05C001D085D3&ei=FUtjW7SYIYuQ_AOshLL4Aw&id=o-ACnyMnsV3cXlzQAvFroU6QhAzpHny_PGfBySDD6zdhOD&dur=10801.063&source=youtube&lmt=1526060295884142&c=WEB&video_id=uG2DGz6Qhc8&title=Relaxing+Guitar+Music.+Calm+Music+for+Stress+Relief%2C+Study&redirect_counter=1&rm=sn-a5m6y7z&req_id=8749c77fcc08a3ee&cms_redirect=yes&ipbypass=yes&mip=85.144.196.10&mm=31&mn=sn-ui0pn-5hne&ms=au&mt=1533233900&mv=m" type="video/mp4">
             Your browser does not support HTML5 Video.
         </video>
         <button class="video-play"></button>
         <div class="video-audio">
             <button class="video-audio-btn"></button>
-            <input orient="vertical" type="range" class="video-audio-level">
+            <input orient="vertical" type="range" class="video-volume">
         </div>
         <div class="video-numeral-progress">2:24/7.21</div>
         <input type="range" class="video-visual-progress">
@@ -28,10 +28,7 @@
     <script>
         var video = videoPlayerJs(document.getElementsByClassName('video-wrapper')[0]);
         var vidEl = document.getElementsByTagName('video')[0];
-        vidEl.addEventListener('durationchange', function() {
-            console.log(vidEl.duration);
-            video.durationupdate(+vidEl.duration);
-        });
+        video.wireupevents();
     </script>
 </body>
 </html>
