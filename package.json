@@ -1,4 +1,6 @@
 {
+  "name": "video-player-js",
+  "description": "Video player UI events",
   "scripts": {
     "postinstall": "gulp"
   },
