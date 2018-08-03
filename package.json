@@ -21,7 +21,6 @@
     "last 2 versions"
   ],
   "scripts": {
-    "prepublish": "npm run gulp",
     "gulp": "gulp"
   },
   "repository": {
