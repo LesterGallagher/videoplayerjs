@@ -21,7 +21,8 @@
     "last 2 versions"
   ],
   "scripts": {
-    "postinstall": "gulp"
+    "prepublish": "npm run gulp",
+    "gulp": "gulp"
   },
   "repository": {
     "type": "git",
