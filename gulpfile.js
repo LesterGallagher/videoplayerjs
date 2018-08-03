@@ -18,7 +18,7 @@ gulp.task('css', function () {
     ];
     return gulp.src('video.css')
         .pipe(postcss(plugins))
-        .pipe(concat('video.min2.css'))
+        .pipe(concat('video.min.css'))
         .pipe(gulp.dest('./'));
 });
 
