@@ -1,7 +1,6 @@
-(function () {
+'use strict'
 
-})();
-function videoPlayerJs(wrapper) {
+window['videoPlayerJs'] = function videoPlayerJs(wrapper) {
     if (wrapper.tagname === 'VIDEO')
         throw 'Pass in the element containing the video element, \
                not the video element itself';
@@ -29,6 +28,7 @@ function videoPlayerJs(wrapper) {
     var muted = false;
     var fullscreen = false;
     var vidLenLong = false;
+    var isScrubing = false;
 
     var r = eventEmitter();
     var emitter = r.emitter;
@@ -57,7 +57,14 @@ function videoPlayerJs(wrapper) {
         var val = (videoVisualProgress.value - (videoVisualProgress.min || 0)) / (videoVisualProgress.max || 100);
         val = Math.min(1, Math.max(0, val));
         var time = val * vidDuration;
-        emitter['timeupdate'](time);
+        if (!isScrubing) video.pause();
+        isScrubing = true;
+        emitter['scrub'](time);
+    });
+
+    videoVisualProgress.addEventListener('change', function() {
+        isScrubing = false;
+        if (isPlaying) video.play();
     });
 
     videoFullscreen.addEventListener('click', function () {
@@ -85,8 +92,8 @@ function videoPlayerJs(wrapper) {
         videoNumeralProgress.innerText = fmt(vidTime) + '/' + vidDurationFmt;
         if ((vidDuration > 3600 || vidDuration > 3600) && !vidLenLong) videoVisualProgress.classList.add('video-length-long');
         else if ((vidDuration <= 3600 && vidDuration <= 3600) && vidLenLong) videoVisualProgress.classList.remove('video-length-long'); 
-        emit('durationchange');
-    }
+        emit('durationchange', seconds);
+    };
 
     function setAudioLevelIcon() {
         videoAudio.classList.remove('volume-high');
@@ -96,7 +103,7 @@ function videoPlayerJs(wrapper) {
         var level = muted ? 0 : vidVolume;
         var levelStr = level > 0.66 ? 'high' : level > 0.33 ? 'med' : level > 0 ? 'low' : 'muted';
         videoAudio.classList.add('volume-' + levelStr);
-    }
+    };
 
     emitter['volume'] = function (level) {
         if (muted && level !== 0) {
@@ -117,7 +124,7 @@ function videoPlayerJs(wrapper) {
         setAudioLevelIcon();
         emit('mute');
         emit('volume', 0);
-    }
+    };
 
     emitter['unmute'] = function () {
         if (!muted) return;
@@ -125,16 +132,28 @@ function videoPlayerJs(wrapper) {
         setAudioLevelIcon();
         emit('unmute');
         emit('volume', vidVolume);
-    }
+    };
 
     emitter['timeupdate'] = function (seconds) {
         vidTime = seconds;
         videoNumeralProgress.innerText = fmt(seconds) + '/' + vidDurationFmt;
-    }
+        var ratio = vidTime / vidDuration;
+        var min = +videoNumeralProgress.min || 0;
+        var span = (+videoNumeralProgress.max || 100) - min;
+        if (!isScrubing) {
+            videoVisualProgress.value = ratio * span + min;
+        }
+        emit('timeupdate', seconds);
+    };
+
+    emitter['scrub'] = function(seconds) {
+        emitter['timeupdate'](seconds);
+        emit('scrub', seconds);
+    };
 
     emitter['fullscreen'] = function () {
         if (fullscreen) return;
-        video.classList.add('fullscreen');
+        wrapper.classList.add('fullscreen');
         fullscreen = true;
         registerExitHandlers();
         if (wrapper.requestFullscreen) {
@@ -147,13 +166,13 @@ function videoPlayerJs(wrapper) {
             wrapper.webkitRequestFullscreen();
         }
         emit('fullscreen');
-    }
+    };
 
     emitter['windowedscreen'] = function () {
         if (!fullscreen) return;
         unRegisterExitHandlers();
         fullscreen = false;
-        if (video.classList.contains('fullscreen')) {
+        if (wrapper.classList.contains('fullscreen')) {
             if (document.exitFullscreen) {
                 document.exitFullscreen();
             } else if (document.msExitFullscreen) {
@@ -164,9 +183,9 @@ function videoPlayerJs(wrapper) {
                 document.webkitExitFullscreen();
             }
         }
-        video.classList.remove('fullscreen');
+        wrapper.classList.remove('fullscreen');
         emit('windowedscreen');
-    }
+    };
 
     emitter['wireupevents'] = function() {
         emitter.addEventListener('play', function() {
@@ -179,12 +198,24 @@ function videoPlayerJs(wrapper) {
 
         emitter.addEventListener('volume', function(level) {
             video.volume = level;
-        })
+        });
+
+        emitter.addEventListener('scrub', function(seconds) {
+            video.currentTime = seconds;
+        });
 
         video.addEventListener('durationchange', function() {
-            emitter.durationchange(video.duration);
+            emitter['durationchange'](video.duration);
         });
-    }
+
+        video.addEventListener('timeupdate', function() {
+            emitter['timeupdate'](video.currentTime);
+        });
+
+        video.addEventListener('ended', function() {
+            emitter.stop();
+        });
+    };
 
     return emitter;
 

@@ -11,12 +11,18 @@
     display: inline-block;
 }
 
+.video-wrapper .video-ui {
+    display: block;
+}
+
 .video-wrapper .video {
     display: block;
 }
 
-.video-wrapper .video.fullscreen {
+.video-wrapper.fullscreen .video {
     width: 100vw;
+    height: 100vh;
+    background: #000;
 }
 
 .video-play,
